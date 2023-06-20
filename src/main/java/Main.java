@@ -1,44 +1,51 @@
-import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class Main {
     static AtomicInteger length3 = new AtomicInteger(0);
     static AtomicInteger length4 = new AtomicInteger(0);
     static AtomicInteger length5 = new AtomicInteger(0);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Random random = new Random();
         String[] texts = new String[100_000];
         for (int i = 0; i < texts.length; i++) {
             texts[i] = generateText("abc", 3 + random.nextInt(3));
         }
-        new Thread(() -> {
+        Thread same = new Thread(() -> {
             for (String text : texts) {
-                if ((palindrome(text) || same(text) || increase(text)) && text.length() == 3) {
-                    length3.getAndIncrement();
+                if ((same(text))) {
+                    incrementCounter(text.length());
                 }
             }
             System.out.println("Красивых слов с длиной 3: " + length3.get());
-        }).start();
-        new Thread(() -> {
+        });
+        same.start();
+
+        Thread palindromes = new Thread(() -> {
             for (String text : texts) {
-                if ((palindrome(text) || same(text) || increase(text)) && text.length() == 4) {
-                    length4.getAndIncrement();
+                if ((palindrome(text) && !same(text))) {
+                    incrementCounter(text.length());
                 }
             }
             System.out.println("Красивых слов с длиной 4: " + length4.get());
-        }).start();
-        new Thread(() -> {
+        });
+        palindromes.start();
+
+        Thread increases = new Thread(() -> {
             for (String text : texts) {
-                if ((palindrome(text) || same(text) || increase(text)) && text.length() == 5) {
-                    length5.getAndIncrement();
+                if (!same(text) && increase(text)) {
+                    incrementCounter(text.length());
                 }
             }
             System.out.println("Красивых слов с длиной 5: " + length5.get());
-        }).start();
+        });
+        increases.start();
+
+        same.join();
+        increases.join();
+        palindromes.join();
     }
 
     static boolean increase(String text) {
@@ -66,6 +73,16 @@ public class Main {
             text.append(letters.charAt(random.nextInt(letters.length())));
         }
         return text.toString();
+    }
+
+    public static void incrementCounter(int textLength) {
+        if (textLength == 3) {
+            length3.getAndIncrement();
+        } else if (textLength == 4) {
+            length4.getAndIncrement();
+        } else if (textLength == 5) {
+            length5.getAndIncrement();
+        }
     }
 
 }
